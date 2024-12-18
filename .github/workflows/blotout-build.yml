@@ -82,7 +82,7 @@ jobs:
     - name: List docker images 
       run: |
             docker images
-            
+
     - name: Tag and Push the image for Airbyte Server 
       run: |
           docker tag airbyte/server:dev blotout/airbyte-server-v1:${{ env.DOCKER_TAG }}
@@ -138,11 +138,6 @@ jobs:
           docker tag airbyte/featureflag-server:dev blotout/airbyte-featureflag-server-v1:${{ env.DOCKER_TAG }}
           docker push blotout/airbyte-featureflag-server-v1:${{ env.DOCKER_TAG }}
 
-    - name: Tag and Push the image for Airbyte Metric Reporter
-      run: |
-          docker tag airbyte/metric-reporter:dev blotout/airbyte-metric-reporter-v1:${{ env.DOCKER_TAG }}
-          docker push blotout/airbyte-metric-reporter-v1:${{ env.DOCKER_TAG }}
-
     - name: Tag and Push the image for Airbyte Webapp
       run: |
           docker tag airbyte/webapp:dev blotout/airbyte-webapp-v1:${{ env.DOCKER_TAG }}
@@ -169,3 +164,7 @@ jobs:
           docker pull minio/minio:RELEASE.2024-11-07T00-52-20Z.fips
           docker tag minio/minio:RELEASE.2024-11-07T00-52-20Z.fips blotout/airbyte-minio:v1
           docker push blotout/airbyte-minio:v1
+
+    - name: List docker blotout images
+      run: |
+            docker images |grep blotout        
