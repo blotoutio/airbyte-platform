@@ -158,10 +158,13 @@ jobs:
           command: ./gradlew build -x :oss:airbyte-commons-worker:test javadoc --scan
           attempt_limit: 3
           attempt_delay: 5000 # in ms
-
+     
       - name: Check documentation
         if: success() && github.ref == 'refs/heads/main'
         run: ./tools/site/link_checker.sh check_docs
+      
+      - name: Docker images
+        run: docker images
 
       #       This is only required on the usual github runner. The usual runner does not contain enough disk space for our use.
       #      - name: Get Docker Space
