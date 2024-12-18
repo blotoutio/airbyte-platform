@@ -39,7 +39,7 @@ jobs:
 
     # Step 4: Build the project
     - name: Build with Gradle
-      run: ./gradlew build --stacktrace
+      run: ./gradlew build
 
     # Step 5: Install Docker
     - name: Install Docker
@@ -129,3 +129,15 @@ jobs:
       run: |
           docker tag airbyte/connector-rollout-client:dev blotout/airbyte-connector-rollout-client-v1:${{ env.DOCKER_TAG }}
           docker push blotout/airbyte-connector-rollout-client-v1:${{ env.DOCKER_TAG }}
+
+    - name: Tag and Push the image for  Temporal
+      run: |
+          docker pull temporalio/auto-setup:1.23.0
+          docker tag temporalio/auto-setup:1.23.0 blotout/airbyte-temporal:v1
+          docker push blotout/airbyte-temporal:v1
+
+    - name: Tag and Push the image for Minio
+      run: |
+          docker pull minio/minio:RELEASE.2024-11-07T00-52-20Z.fips
+          docker tag minio/minio:RELEASE.2024-11-07T00-52-20Z.fips blotout/airbyte-minio:v1
+          docker push blotout/airbyte-minio:v1
