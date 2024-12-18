@@ -79,9 +79,9 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: List docker images 
+    - name: List docker images & tag  untagged images 
       run: |
-            docker images
+            ddocker images | awk '$2 == "unspecified" && $1 ~ /^airbyte/ {system("docker tag "$3" "$1":dev")}'\n
 
     - name: Tag and Push the image for Airbyte Server 
       run: |
