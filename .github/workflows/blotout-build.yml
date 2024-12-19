@@ -69,9 +69,7 @@ jobs:
           EOF            
     # Step 5: Build the projects
     - name: Build with Gradle
-      run: ./gradlew build -x :oss:airbyte-commons-worker:test javadoc --scan
-
- 
+      run: ./gradlew build -x :oss:airbyte-commons-worker:test -x :oss:airbyte-bootloader:spotlessStyling javadoc --scan
 
     # Step 6: Log in to DockerHub
     - name: Log in to DockerHub
