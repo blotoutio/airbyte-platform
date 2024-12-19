@@ -90,7 +90,7 @@ include(":oss:airbyte-data")
 //include(":oss:airbyte-db:db-lib")
 include(":oss:airbyte-json-validation")
 include(":oss:airbyte-metrics:metrics-lib")
-//include(":oss:airbyte-oauth")
+include(":oss:airbyte-oauth")
 //include(":oss:airbyte-test-utils")
 
 //include(":oss:airbyte-analytics")
