@@ -1,0 +1,171 @@
+name: Blotout Gradle Build & Docker push
+
+on:
+  push:
+    branches:
+      - main
+      - custom_auth
+env:
+  DOCKER_TAG: "v1"
+
+
+jobs:
+  build:
+    runs-on: self-hosted 
+    steps:
+    # Step 1: Check out the repository
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Step 2: Set up JDK
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21' # Specify the version your project requires
+        distribution: 'temurin' # Options: 'temurin', 'zulu', 'adopt', etc.
+
+    # Step 3: Cache Gradle dependencies
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.gradle/caches
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+          # Step 4: Install Docker
+    - name: Install Docker
+      run: |
+            sudo apt-get update
+            sudo apt-get install -y \
+              apt-transport-https \
+              ca-certificates \
+              curl \
+              gnupg-agent \
+              software-properties-common
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+            sudo add-apt-repository \
+              "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+              $(lsb_release -cs) \
+              stable"
+            sudo apt-get update
+            sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+            sudo usermod -aG docker $USER
+            sudo systemctl restart docker
+            sudo chmod 666 /var/run/docker.sock
+            
+    - name: Set up CI Gradle Properties
+      run: |
+          mkdir -p ~/.gradle/
+          cat > ~/.gradle/gradle.properties <<EOF
+          org.gradle.jvmargs=-Xmx8g -Xss4m \
+            --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED \
+            --add-exports jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED \
+            --add-exports jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED \
+            --add-exports jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED \
+            --add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
+          org.gradle.workers.max=8
+          org.gradle.vfs.watch=false
+          EOF            
+    # Step 5: Build the projects
+    - name: Build with Gradle
+      run: ./gradlew build -x :oss:airbyte-commons-worker:test javadoc --scan
+
+ 
+
+    # Step 6: Log in to DockerHub
+    - name: Log in to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: List docker images & tag  untagged images 
+      run: |
+            docker images | awk '$2 == "unspecified" && $1 ~ /^airbyte/ {system("docker tag "$3" "$1":dev")}'\n
+
+    - name: Tag and Push the image for Airbyte Server 
+      run: |
+          docker tag airbyte/server:dev blotout/airbyte-server-v1:${{ env.DOCKER_TAG }}
+          docker push blotout/airbyte-server-v1:${{ env.DOCKER_TAG }}        
+
+    - name: Tag and Push the image for Airbyte Workload launcher
+      run: |
+           docker tag airbyte/workload-launcher:dev blotout/airbyte-workload-launcher-v1:${{ env.DOCKER_TAG }}
+           docker push blotout/airbyte-workload-launcher-v1:${{ env.DOCKER_TAG }}
+    
+    - name: Tag and Push the image for Airbyte Worker
+      run: |
+          docker tag airbyte/worker:dev blotout/airbyte-worker-v1:${{ env.DOCKER_TAG }}
+          docker push blotout/airbyte-worker-v1:${{ env.DOCKER_TAG }}
+
+    - name: Tag and Push the image for Airbyte Connector Builder Server
+      run: |
+          docker tag airbyte/connector-builder-server:dev blotout/airbyte-connector-builder-server-v1:${{ env.DOCKER_TAG }}
+          docker push blotout/airbyte-connector-builder-server-v1:${{ env.DOCKER_TAG }}
+
+    - name: Tag and Push the image for Airbyte Connector Sidecar
+      run: |
+          docker tag airbyte/connector-sidecar:dev blotout/airbyte-connector-sidecar-v1:${{ env.DOCKER_TAG }}
+          docker push blotout/airbyte-connector-sidecar-v1:${{ env.DOCKER_TAG }}
+
+    - name: Tag and Push the image for Airbyte Workload Init Container
+      run: |
+          docker tag airbyte/workload-init-container:dev blotout/airbyte-workload-init-container-v1:${{ env.DOCKER_TAG }}
+          docker push blotout/airbyte-workload-init-container-v1:${{ env.DOCKER_TAG }}
+
+    - name: Tag and Push the image for Airbyte Container Orchestrator
+      run: |
+          docker tag airbyte/container-orchestrator:dev blotout/airbyte-container-orchestrator-v1:${{ env.DOCKER_TAG }}
+          docker push blotout/airbyte-container-orchestrator-v1:${{ env.DOCKER_TAG }}
+
+    - name: Tag and Push the image for Airbyte Cron
+      run: |
+          docker tag airbyte/cron:dev blotout/airbyte-cron-v1:${{ env.DOCKER_TAG }}
+          docker push blotout/airbyte-cron-v1:${{ env.DOCKER_TAG }}
+
+    - name: Tag and Push the image for Airbyte Bootloader
+      run: |
+          docker tag airbyte/bootloader:dev blotout/airbyte-bootloader-v1:${{ env.DOCKER_TAG }}
+          docker push blotout/airbyte-bootloader-v1:${{ env.DOCKER_TAG }}
+
+    - name: Tag and Push the image for Airbyte Workload API Server
+      run: |
+          docker tag airbyte/workload-api-server:dev blotout/airbyte-workload-api-server-v1:${{ env.DOCKER_TAG }}
+          docker push blotout/airbyte-workload-api-server-v1:${{ env.DOCKER_TAG }}
+
+    - name: Tag and Push the image for Airbyte Feature Flag Server
+      run: |
+          docker tag airbyte/featureflag-server:dev blotout/airbyte-featureflag-server-v1:${{ env.DOCKER_TAG }}
+          docker push blotout/airbyte-featureflag-server-v1:${{ env.DOCKER_TAG }}
+
+    - name: Tag and Push the image for Airbyte Webapp
+      run: |
+          docker tag airbyte/webapp:dev blotout/airbyte-webapp-v1:${{ env.DOCKER_TAG }}
+          docker push blotout/airbyte-webapp-v1:${{ env.DOCKER_TAG }}
+
+    - name: Tag and Push the image for Airbyte Connector Rollout Worker
+      run: |
+          docker tag airbyte/connector-rollout-worker:dev blotout/airbyte-connector-rollout-worker-v1:${{ env.DOCKER_TAG }}
+          docker push blotout/airbyte-connector-rollout-worker-v1:${{ env.DOCKER_TAG }}
+
+    - name: Tag and Push the image for Airbyte Connector Rollout Client
+      run: |
+          docker tag airbyte/connector-rollout-client:dev blotout/airbyte-connector-rollout-client-v1:${{ env.DOCKER_TAG }}
+          docker push blotout/airbyte-connector-rollout-client-v1:${{ env.DOCKER_TAG }}
+
+    - name: Tag and Push the image for  Temporal
+      run: |
+          docker pull temporalio/auto-setup:1.23.0
+          docker tag temporalio/auto-setup:1.23.0 blotout/airbyte-temporal:v1
+          docker push blotout/airbyte-temporal:v1
+
+    - name: Tag and Push the image for Minio
+      run: |
+          docker pull minio/minio:RELEASE.2024-11-07T00-52-20Z.fips
+          docker tag minio/minio:RELEASE.2024-11-07T00-52-20Z.fips blotout/airbyte-minio:v1
+          docker push blotout/airbyte-minio:v1
+
+    - name: List docker blotout images
+      run: |
+            docker images |grep blotout        
