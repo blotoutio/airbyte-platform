@@ -6,7 +6,7 @@ on:
       - main
       - custom_auth
 env:
-  DOCKER_TAG: "v1"
+  DOCKER_TAG: "${{ github.ref_name }}-${{ github.sha }}"
 
 
 jobs:
@@ -81,6 +81,7 @@ jobs:
     - name: List docker images & tag  untagged images 
       run: |
             docker images | awk '$2 == "unspecified" && $1 ~ /^airbyte/ {system("docker tag "$3" "$1":dev")}'\n
+            docker images
 
     - name: Tag and Push the image for Airbyte Server 
       run: |
