@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - custom_auth
 env:
   DOCKER_TAG: "v1"
 
