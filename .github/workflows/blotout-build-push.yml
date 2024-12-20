@@ -1,0 +1,108 @@
+name: Blotout Gradle Build & Docker push
+
+on:
+  push:
+    branches:
+      - main
+      - custom_auth
+      - test-branch
+env:
+  DOCKER_TAG: "${{ github.ref_name }}-${{ github.sha }}"
+
+
+jobs:
+  build:
+    runs-on: self-hosted 
+    steps:
+    # Step 1: Check out the repository
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Step 2: Set up JDK
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21' # Specify the version your project requires
+        distribution: 'zulu' # Options: 'temurin', 'zulu', 'adopt', etc.
+
+    # # Step 3: Cache Gradle dependencies
+    # - name: Cache Gradle dependencies
+    #   uses: actions/cache@v3
+    #   with:
+    #     path: ~/.gradle/caches
+    #     key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-gradle-
+
+          # Step 4: Install Docker
+    - name: Install Docker
+      run: |
+            sudo apt-get update
+            sudo apt-get install -y \
+              apt-transport-https \
+              ca-certificates \
+              curl \
+              gnupg-agent \
+              software-properties-common
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+            sudo add-apt-repository \
+              "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+              $(lsb_release -cs) \
+              stable"
+            sudo apt-get update
+            sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+            sudo usermod -aG docker $USER
+            sudo systemctl restart docker
+            sudo chmod 666 /var/run/docker.sock
+            
+    - name: Set up CI Gradle Properties
+      run: |
+          mkdir -p ~/.gradle/
+          cat > ~/.gradle/gradle.properties <<EOF
+          org.gradle.jvmargs=-Xmx8g -Xss4m \
+            --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED \
+            --add-exports jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED \
+            --add-exports jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED \
+            --add-exports jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED \
+            --add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
+          org.gradle.workers.max=8
+          org.gradle.vfs.watch=false
+          EOF
+     
+          
+          
+    # - name: Format
+    #   uses: Wandalen/wretry.action@v1.0.36
+    #   with:
+    #         command: ./gradlew format --scan --info --stacktrace
+    #         attempt_limit: 3
+    #         attempt_delay: 5000 # in ms
+  
+
+    # Step 5: Build the projects
+    - name: Build with Gradle
+      uses: Wandalen/wretry.action@v1.0.36
+      #run : ./gradlew build -x :oss:airbyte-commons-worker:test javadoc --scan
+      with: 
+        command: |
+                ./gradlew  :oss:airbyte-server:build -x test -x spotlessJava
+     #  run: ./gradlew build -x :oss:airbyte-commons-worker:test -x :oss:airbyte-bootloader:spotlessStyling -x :oss:airbyte-commons-auth:spotlessStyling  -x :oss:airbyte-api:spotlessStyling -x test -x javadoc  --scan --quiet
+
+    # Step 6: Log in to DockerHub
+    - name: Log in to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: List docker images & tag  untagged images 
+      run: |
+            docker images | awk '$2 == "unspecified" && $1 ~ /^airbyte/ {system("docker tag "$3" "$1":dev")}'\n
+            docker images
+
+    - name: Tag and Push the image for Airbyte Server 
+      run: |
+          docker tag airbyte/server:dev blotout/airbyte-server-v1:${{ env.DOCKER_TAG }}
+          docker push blotout/airbyte-server-v1:${{ env.DOCKER_TAG }}        
+
+   
