@@ -67,9 +67,20 @@ jobs:
           org.gradle.workers.max=8
           org.gradle.vfs.watch=false
           EOF            
+          
+          
+    - name: Format
+      uses: Wandalen/wretry.action@v1.0.36
+      with:
+            command: ./gradlew format --scan --info --stacktrace
+            attempt_limit: 3
+            attempt_delay: 5000 # in ms
+  
+
     # Step 5: Build the projects
     - name: Build with Gradle
-      run: ./gradlew build -x :oss:airbyte-commons-worker:test -x :oss:airbyte-bootloader:spotlessStyling -x :oss:airbyte-commons-auth:spotlessStyling  -x :oss:airbyte-api:spotlessStyling -x test -x javadoc  --scan --quiet
+      run : ./gradlew build -x :oss:airbyte-commons-worker:test javadoc --scan
+    #  run: ./gradlew build -x :oss:airbyte-commons-worker:test -x :oss:airbyte-bootloader:spotlessStyling -x :oss:airbyte-commons-auth:spotlessStyling  -x :oss:airbyte-api:spotlessStyling -x test -x javadoc  --scan --quiet
 
     # Step 6: Log in to DockerHub
     - name: Log in to DockerHub
