@@ -81,11 +81,9 @@ jobs:
 
     # Step 5: Build the projects
     - name: Build with Gradle
-      uses: Wandalen/wretry.action@v1.0.36
-      #run : ./gradlew build -x :oss:airbyte-commons-worker:test javadoc --scan
-      with: 
-        command: |
-                ./gradlew  :oss:airbyte-server:build -x test -x spotlessJava
+      run: |
+            ./gradlew clean
+            ./gradlew  :oss:airbyte-server:build -x test -x spotlessJava -x spotlessStyling -x :oss:airbyte-commons-worker:test javadoc --scan --quiet 
      #  run: ./gradlew build -x :oss:airbyte-commons-worker:test -x :oss:airbyte-bootloader:spotlessStyling -x :oss:airbyte-commons-auth:spotlessStyling  -x :oss:airbyte-api:spotlessStyling -x test -x javadoc  --scan --quiet
 
     # Step 6: Log in to DockerHub
