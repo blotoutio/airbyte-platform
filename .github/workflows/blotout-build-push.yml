@@ -83,7 +83,7 @@ jobs:
     - name: Build with Gradle
       run: |
             ./gradlew clean
-            ./gradlew  :oss:airbyte-server:build -x test -x spotlessJava -x spotlessStyling -x :oss:airbyte-commons-worker:test javadoc --scan --quiet 
+            ./gradlew  :oss:airbyte-server:build -x test -x spotlessJava -x spotlessStyling -x :oss:airbyte-commons-worker:test -x javadoc --scan --quiet 
      #  run: ./gradlew build -x :oss:airbyte-commons-worker:test -x :oss:airbyte-bootloader:spotlessStyling -x :oss:airbyte-commons-auth:spotlessStyling  -x :oss:airbyte-api:spotlessStyling -x test -x javadoc  --scan --quiet
 
     # Step 6: Log in to DockerHub
