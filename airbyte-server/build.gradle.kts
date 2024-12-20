@@ -1,3 +1,8 @@
+// Declare project-wide properties in the `ext` block
+ext {
+  micronautVersion = "3.8.2"  // specify the version you want to use
+}
+
 plugins {
   id("io.airbyte.gradle.jvm.app")
   id("io.airbyte.gradle.docker")
@@ -22,7 +27,7 @@ dependencies {
   implementation(libs.bundles.micronaut.data.jdbc)
   implementation(libs.bundles.micronaut.metrics)
   implementation(libs.micronaut.jaxrs.server)
-  implementation(libs.micronaut.http)
+  implementation(libs.micronaut.http)  // Ensure this is present for HTTP functionality
   implementation(libs.jakarta.ws.rs.api)
   implementation(libs.micronaut.security)
   implementation(libs.micronaut.security.jwt)
@@ -43,6 +48,7 @@ dependencies {
   implementation(libs.jakarta.validation.api)
   implementation(libs.kubernetes.client)
 
+  // Airbyte specific modules
   implementation(project(":oss:airbyte-analytics"))
   implementation(project(":oss:airbyte-api:problems-api"))
   implementation(project(":oss:airbyte-api:public-api"))
@@ -107,15 +113,13 @@ dependencies {
   testRuntimeOnly(libs.junit.jupiter.engine)
 }
 
-// we want to be able to access the generated db files from config/init when we build the server docker image.)
+// Define additional task or configuration if needed
 val copySeed = tasks.register<Copy>("copySeed") {
   from("${project(":oss:airbyte-config:init").layout.buildDirectory.get()}/resources/main/config")
   into("${project.layout.buildDirectory.get()}/config_init/resources/main/config")
   dependsOn(project(":oss:airbyte-config:init").tasks.named("processResources"))
 }
 
-// need to make sure that the files are in the resource directory before copying.)
-// tests require the seed to exist.)
 tasks.named("test") {
   dependsOn(copySeed)
 }
@@ -179,9 +183,6 @@ tasks.named<Test>("test") {
   )
 }
 
-// The DuplicatesStrategy will be required while this module is mixture of kotlin and java _with_ lombok dependencies.
-// By default, Gradle runs all annotation processors and disables annotation processing by javac, however.  Once lombok has
-// been removed, this can also be removed.
 tasks.withType<Jar>().configureEach {
   duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
