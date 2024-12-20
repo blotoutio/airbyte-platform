@@ -81,7 +81,8 @@ jobs:
     # Step 5: Build the projects
     - name: Build with Gradle
       #run : ./gradlew build -x :oss:airbyte-commons-worker:test javadoc --scan
-      run: ./gradlew clean build -x :oss:airbyte-bootloader:spotlessStyling \
+      run: |
+          ./gradlew clean build -x :oss:airbyte-bootloader:spotlessStyling \
                            -x :oss:airbyte-commons-auth:spotlessStyling \
                            -x :oss:airbyte-api:spotlessStyling \
                            -x :oss:airbyte-cron:spotlessStyling \
