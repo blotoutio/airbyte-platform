@@ -31,7 +31,7 @@ public class CorsFilter implements HttpFilter {
                     // Ensure that headers are mutable before modifying them
                     MutableHttpHeaders headers = (MutableHttpHeaders) response.getHeaders();
                     // Add CORS headers to the response inside the Mono flow
-                    CORS_HEADERS.forEach((key, value) -> headers.put(key, value));
+                    CORS_HEADERS.forEach((key, value) -> headers.add(key, value));  // Use add() here
                     return response;
                 });
     }
