@@ -24,11 +24,11 @@ public class CorsFilter implements HttpFilter {
 
     @Override
     public Mono<HttpResponse<?>> doFilter(HttpRequest<?> request, FilterChain chain) {
-        // Ensure chain.proceed(request) returns a Mono<HttpResponse<?>>, and apply CORS headers
-        return Mono.from(chain.proceed(request))  // Wrap Publisher in Mono to use map
+        // Ensure the response is a Mono<HttpResponse<?>> and use reactive map to modify headers
+        return Mono.from(chain.proceed(request))  // Convert the Publisher to Mono
                 .map(response -> {
-                    // Add CORS headers to the response
-                    CORS_HEADERS.forEach(response.headers()::add);
+                    // Add CORS headers to the response inside the Mono flow
+                    CORS_HEADERS.forEach((key, value) -> response.getHeaders().add(key, value));
                     return response;
                 });
     }
