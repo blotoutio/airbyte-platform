@@ -1,3 +1,4 @@
+/*
 package io.airbyte.server.pro;
 
 import io.micronaut.http.HttpHeaders;
@@ -87,3 +88,4 @@ public class AuthenticationFilter implements HttpFilter {
         return chain.proceed(request);
     }
 }
+*/

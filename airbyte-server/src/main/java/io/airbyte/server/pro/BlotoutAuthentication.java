@@ -3,7 +3,7 @@ package io.airbyte.server.pro;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.client.HttpClient;
+import io.micronaut.http.client.HttpClient;  // Micronaut's HttpClient
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.HttpRequest;
 import org.slf4j.Logger;
@@ -13,9 +13,6 @@ import io.airbyte.server.config.BlotoutConfigs;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
-import java.net.http.HttpClient; // Corrected import
-import java.net.http.HttpRequest; // Corrected import
-import java.net.http.HttpResponse.BodyHandlers; // Corrected import
 
 @Singleton
 public class BlotoutAuthentication {
@@ -23,7 +20,7 @@ public class BlotoutAuthentication {
     private static final Logger LOGGER = LoggerFactory.getLogger(BlotoutAuthentication.class);
 
     private final BlotoutConfigs configs;
-    private static final HttpClient httpClient = HttpClient.newHttpClient();  // Corrected to HttpClient
+    private static final java.net.http.HttpClient httpClient = java.net.http.HttpClient.newHttpClient();  // Fully qualified Java HttpClient
 
     public BlotoutAuthentication(BlotoutConfigs blotoutConfigs) {
         this.configs = blotoutConfigs;
@@ -39,14 +36,14 @@ public class BlotoutAuthentication {
         LOGGER.info("blotoutAuthEndpoint : " + blotoutAuthEndpoint);
 
         URI uri = URI.create(blotoutBaseUrl + blotoutAuthEndpoint);
-        HttpRequest request = HttpRequest.newBuilder(uri)
+        java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder(uri) // Fully qualified Java HttpRequest
                 .timeout(Duration.ofSeconds(120))
                 .header("Content-Type", "application/json")
                 .header("token", token)
                 .build();
 
         // Send the request using HttpClient
-        java.net.http.HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+        java.net.http.HttpResponse<String> response = httpClient.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
 
         LOGGER.info("Response: " + response.body());
         return response.statusCode() == 200;
@@ -62,7 +59,7 @@ public class BlotoutAuthentication {
         LOGGER.info("blotoutAuthEndpoint : " + blotoutAuthEndpoint);
 
         URI uri = URI.create(blotoutBaseUrl + blotoutAuthEndpoint);
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(uri)
+        java.net.http.HttpRequest.Builder requestBuilder = java.net.http.HttpRequest.newBuilder(uri)  // Fully qualified Java HttpRequest
                 .timeout(Duration.ofSeconds(120))
                 .header("Content-Type", "application/json")
                 .header("origin", origin)
@@ -73,7 +70,7 @@ public class BlotoutAuthentication {
         }
 
         // Send the request using HttpClient
-        java.net.http.HttpResponse<String> response = httpClient.send(requestBuilder.build(), BodyHandlers.ofString());
+        java.net.http.HttpResponse<String> response = httpClient.send(requestBuilder.build(), java.net.http.HttpResponse.BodyHandlers.ofString());
 
         LOGGER.info("Response: " + response.body());
         return response.statusCode() == 200;
