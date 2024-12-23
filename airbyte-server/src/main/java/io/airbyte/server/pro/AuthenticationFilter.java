@@ -1,12 +1,12 @@
 package io.airbyte.server.pro;
 
+import com.example.services.BlotoutAuthentication;
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Filter;
-import io.micronaut.http.filter.HttpRequestFilter;
+import io.micronaut.http.filter.HttpFilter;
 import io.micronaut.http.filter.FilterChain;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.http.MutableHttpHeaders;  // Ensure MutableHttpHeaders is imported
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +16,7 @@ import java.io.IOException;
 
 @Filter("/**")  // Apply filter to all endpoints
 @Singleton
-public class AuthenticationFilter implements HttpRequestFilter {
+public class AuthenticationFilter implements HttpFilter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationFilter.class);
 
@@ -27,11 +27,11 @@ public class AuthenticationFilter implements HttpRequestFilter {
     }
 
     @Override
-    public Mono<HttpResponse<?>> filter(HttpRequest<?> request, FilterChain chain) {
+    public Mono<HttpResponse<?>> doFilter(HttpRequest<?> request, FilterChain chain) {
         // Skip health check path (if needed)
         System.out.println("Request path : " + request.getPath());
         if ("v1/health".equalsIgnoreCase(request.getPath())) {
-            return chain.proceed(request); // Continue to next filter without modification
+            return chain.proceed(request);  // Continue without any authentication logic
         }
 
         String authorizationHeader = request.getHeaders().get(HttpHeaders.AUTHORIZATION);
@@ -44,7 +44,7 @@ public class AuthenticationFilter implements HttpRequestFilter {
 
         // If the request is a CORS preflight request (OPTIONS), bypass the authentication
         if (request.getMethod().name().equalsIgnoreCase("OPTIONS")) {
-            return chain.proceed(request);  // Allow OPTIONS requests to pass through
+            return chain.proceed(request);
         }
 
         // Check if the Authorization header is present and starts with "Bearer "
@@ -55,17 +55,20 @@ public class AuthenticationFilter implements HttpRequestFilter {
             try {
                 // Perform standard token validation (for Bearer tokens)
                 if (!blotoutAuthentication.validateToken(token)) {
-                    return Mono.just(HttpResponse.unauthorized().header(HttpHeaders.WWW_AUTHENTICATE, "Bearer realm=\"Blotout\""));
+                    return HttpResponse.unauthorized().header(HttpHeaders.WWW_AUTHENTICATE, "Bearer realm=\"Blotout\"");
                 }
             } catch (IOException e) {
+                // Handle IOException (e.g., network-related issues, I/O operations)
                 LOGGER.error("IOException occurred during validateToken authentication", e);
-                return Mono.just(HttpResponse.serverError().body("Internal server error: " + e.getMessage()));
+                return HttpResponse.serverError().body("Internal server error: " + e.getMessage());
             } catch (InterruptedException e) {
+                // Handle InterruptedException (e.g., thread interruption, long-running process)
                 LOGGER.error("InterruptedException occurred during validateToken authentication", e);
-                return Mono.just(HttpResponse.serverError().body("Request interrupted: " + e.getMessage()));
+                return HttpResponse.serverError().body("Request interrupted: " + e.getMessage());
             } catch (Exception e) {
+                // Catch any other unexpected exceptions
                 LOGGER.error("validateToken authentication failed due to unexpected error", e);
-                return Mono.just(HttpResponse.serverError().body("Unexpected error occurred"));
+                return HttpResponse.serverError().body("Unexpected error occurred");
             }
         }
         // EdgeTag-based authentication (validate token with origin and teamId)
@@ -73,29 +76,27 @@ public class AuthenticationFilter implements HttpRequestFilter {
             try {
                 // Perform EdgeTag validation
                 if (!blotoutAuthentication.validateEdgeTagBasedAuthentication(originHeader, authorizationHeader, teamIdHeader)) {
-                    return Mono.just(HttpResponse.unauthorized().header(HttpHeaders.WWW_AUTHENTICATE, "Bearer realm=\"Blotout\""));
+                    return HttpResponse.unauthorized().header(HttpHeaders.WWW_AUTHENTICATE, "Bearer realm=\"Blotout\"");
                 }
             } catch (IOException e) {
+                // Handle IOException (e.g., network-related issues, I/O operations)
                 LOGGER.error("IOException occurred during EdgeTag-based authentication", e);
-                return Mono.just(HttpResponse.serverError().body("Internal server error: " + e.getMessage()));
+                return HttpResponse.serverError().body("Internal server error: " + e.getMessage());
             } catch (InterruptedException e) {
+                // Handle InterruptedException (e.g., thread interruption, long-running process)
                 LOGGER.error("InterruptedException occurred during EdgeTag-based authentication", e);
-                return Mono.just(HttpResponse.serverError().body("Request interrupted: " + e.getMessage()));
+                return HttpResponse.serverError().body("Request interrupted: " + e.getMessage());
             } catch (Exception e) {
+                // Catch any other unexpected exceptions
                 LOGGER.error("EdgeTag-based authentication failed due to unexpected error", e);
-                return Mono.just(HttpResponse.serverError().body("Unexpected error occurred"));
+                return HttpResponse.serverError().body("Unexpected error occurred");
             }
         } else {
-            return Mono.just(HttpResponse.unauthorized().header(HttpHeaders.WWW_AUTHENTICATE, "Bearer realm=\"Blotout\""));
+            // If neither authorization header nor EdgeTag-based details are found
+            return HttpResponse.unauthorized().header(HttpHeaders.WWW_AUTHENTICATE, "Bearer realm=\"Blotout\"");
         }
 
         // If validation passes, proceed with the request chain
-        return chain.proceed(request)
-                .map(response -> {
-                    // After validation, we ensure the response has the correct headers
-                    MutableHttpHeaders headers = (MutableHttpHeaders) response.getHeaders();
-                    // Here you can add any additional headers, if needed
-                    return response;  // Return the original response
-                });
+        return chain.proceed(request);
     }
 }
