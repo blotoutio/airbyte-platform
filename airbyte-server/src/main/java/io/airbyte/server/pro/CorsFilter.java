@@ -2,7 +2,7 @@ package io.airbyte.server.pro;
 
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.annotation.Filter;
-import io.micronaut.http.filter.HttpResponseFilter;
+import io.micronaut.http.filter.HttpFilter;
 import io.micronaut.http.filter.FilterChain;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -12,7 +12,7 @@ import java.util.Map;
 
 @Filter("/**")  // Apply filter to all endpoints
 @Singleton
-public class CorsFilter implements HttpResponseFilter {
+public class CorsFilter implements HttpFilter {
 
     private static final Map<String, String> CORS_HEADERS = Map.of(
             HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*",
@@ -22,9 +22,10 @@ public class CorsFilter implements HttpResponseFilter {
     );
 
     @Override
-    public HttpResponse filter(HttpRequest request, FilterChain chain) {
+    public HttpResponse doFilter(HttpRequest request, FilterChain chain) {
         HttpResponse response = chain.proceed(request);
         CORS_HEADERS.forEach(response.headers()::add);
         return response;
     }
 }
+
