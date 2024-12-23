@@ -7,6 +7,7 @@ import io.micronaut.http.filter.FilterChain;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import jakarta.inject.Singleton;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
@@ -22,10 +23,12 @@ public class CorsFilter implements HttpFilter {
     );
 
     @Override
-    public HttpResponse doFilter(HttpRequest request, FilterChain chain) {
-        HttpResponse response = chain.proceed(request);
-        CORS_HEADERS.forEach(response.headers()::add);
-        return response;
+    public Mono<HttpResponse<?>> doFilter(HttpRequest<?> request, FilterChain chain) {
+        // Proceed with the request and get the response asynchronously
+        return chain.proceed(request).map(response -> {
+            // Add CORS headers to the response
+            CORS_HEADERS.forEach(response.headers()::add);
+            return response;
+        });
     }
 }
-
