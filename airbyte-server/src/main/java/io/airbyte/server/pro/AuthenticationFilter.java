@@ -1,101 +1,81 @@
 package io.airbyte.server.pro;
 
-import io.micronaut.http.HttpHeaders;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.annotation.Filter;
-import io.micronaut.http.filter.HttpFilter;
-import io.micronaut.http.filter.FilterChain;
-import io.micronaut.http.HttpRequest;
+import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.client.HttpClient;
+import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.HttpRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Mono;
+import io.airbyte.server.config.BlotoutConfigs;
 
 import java.io.IOException;
+import java.net.URI;
+import java.time.Duration;
+import java.net.http.HttpClient as JHttpClient;
+import java.net.http.HttpRequest as JHttpRequest;
+import java.net.http.HttpResponse.BodyHandlers;
 
-@Filter("/**")  // Apply filter to all endpoints
 @Singleton
-public class AuthenticationFilter implements HttpFilter {
+public class BlotoutAuthentication {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationFilter.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(BlotoutAuthentication.class);
 
-    private final BlotoutAuthentication blotoutAuthentication;
+    private final BlotoutConfigs configs;
+    private static final JHttpClient httpClient = JHttpClient.newHttpClient();  // Use java.net.http.HttpClient
 
-    public AuthenticationFilter(BlotoutAuthentication blotoutAuthentication) {
-        this.blotoutAuthentication = blotoutAuthentication;
+    public BlotoutAuthentication(BlotoutConfigs blotoutConfigs) {
+        this.configs = blotoutConfigs;
     }
 
-    @Override
-    public Mono<HttpResponse<?>> doFilter(HttpRequest<?> request, FilterChain chain) {
-        // Skip health check path (if needed)
-        System.out.println("Request path : " + request.getPath());
-        if ("v1/health".equalsIgnoreCase(request.getPath())) {
-            return chain.proceed(request);  // Continue without any authentication logic
+    /**
+     * Validates the token using the Blotout service.
+     */
+    public boolean validateToken(String token) throws IOException, InterruptedException {
+        String blotoutBaseUrl = configs.getBlotoutBaseUrl();
+        String blotoutAuthEndpoint = configs.getBlotoutAuthEndpoint();
+        LOGGER.info("blotoutBaseUrl : " + blotoutBaseUrl);
+        LOGGER.info("blotoutAuthEndpoint : " + blotoutAuthEndpoint);
+
+        URI uri = URI.create(blotoutBaseUrl + blotoutAuthEndpoint);
+        JHttpRequest request = JHttpRequest.newBuilder(uri)
+                .timeout(Duration.ofSeconds(120))
+                .header("Content-Type", "application/json")
+                .header("token", token)
+                .build();
+
+        // Send the request using HttpClient
+        java.net.http.HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+
+        LOGGER.info("Response: " + response.body());
+        return response.statusCode() == 200;
+    }
+
+    /**
+     * Validates EdgeTag-based authentication tokens.
+     */
+    public boolean validateEdgeTagBasedAuthentication(String origin, String token, String teamId) throws IOException, InterruptedException {
+        String blotoutBaseUrl = configs.getBlotoutBaseUrl();
+        String blotoutAuthEndpoint = configs.getBlotoutAuthEndpoint();
+        LOGGER.info("blotoutBaseUrl : " + blotoutBaseUrl);
+        LOGGER.info("blotoutAuthEndpoint : " + blotoutAuthEndpoint);
+
+        URI uri = URI.create(blotoutBaseUrl + blotoutAuthEndpoint);
+        JHttpRequest.Builder requestBuilder = JHttpRequest.newBuilder(uri)
+                .timeout(Duration.ofSeconds(120))
+                .header("Content-Type", "application/json")
+                .header("origin", origin)
+                .header("token", token);
+
+        if (teamId != null) {
+            requestBuilder.header("Team-Id", teamId);
         }
 
-        String authorizationHeader = request.getHeaders().get(HttpHeaders.AUTHORIZATION);
-        String originHeader = request.getHeaders().get(HttpHeaders.ORIGIN);
-        String teamIdHeader = request.getHeaders().get("Team-Id");
+        // Send the request using HttpClient
+        java.net.http.HttpResponse<String> response = httpClient.send(requestBuilder.build(), BodyHandlers.ofString());
 
-        System.out.println("authorizationHeader : " + authorizationHeader);
-        System.out.println("originHeader : " + originHeader);
-        System.out.println("teamIdHeader : " + teamIdHeader);
-
-        // If the request is a CORS preflight request (OPTIONS), bypass the authentication
-        if (request.getMethod().name().equalsIgnoreCase("OPTIONS")) {
-            return chain.proceed(request);
-        }
-
-        // Check if the Authorization header is present and starts with "Bearer "
-        if (authorizationHeader != null && authorizationHeader.toLowerCase().startsWith("bearer ")) {
-            // Extract the token (remove "Bearer " prefix)
-            String token = authorizationHeader.substring(7).trim();
-
-            try {
-                // Perform standard token validation (for Bearer tokens)
-                if (!blotoutAuthentication.validateToken(token)) {
-                    return HttpResponse.unauthorized().header(HttpHeaders.WWW_AUTHENTICATE, "Bearer realm=\"Blotout\"");
-                }
-            } catch (IOException e) {
-                // Handle IOException (e.g., network-related issues, I/O operations)
-                LOGGER.error("IOException occurred during validateToken authentication", e);
-                return HttpResponse.serverError().body("Internal server error: " + e.getMessage());
-            } catch (InterruptedException e) {
-                // Handle InterruptedException (e.g., thread interruption, long-running process)
-                LOGGER.error("InterruptedException occurred during validateToken authentication", e);
-                return HttpResponse.serverError().body("Request interrupted: " + e.getMessage());
-            } catch (Exception e) {
-                // Catch any other unexpected exceptions
-                LOGGER.error("validateToken authentication failed due to unexpected error", e);
-                return HttpResponse.serverError().body("Unexpected error occurred");
-            }
-        }
-        // EdgeTag-based authentication (validate token with origin and teamId)
-        else if (originHeader != null && teamIdHeader != null) {
-            try {
-                // Perform EdgeTag validation
-                if (!blotoutAuthentication.validateEdgeTagBasedAuthentication(originHeader, authorizationHeader, teamIdHeader)) {
-                    return HttpResponse.unauthorized().header(HttpHeaders.WWW_AUTHENTICATE, "Bearer realm=\"Blotout\"");
-                }
-            } catch (IOException e) {
-                // Handle IOException (e.g., network-related issues, I/O operations)
-                LOGGER.error("IOException occurred during EdgeTag-based authentication", e);
-                return HttpResponse.serverError().body("Internal server error: " + e.getMessage());
-            } catch (InterruptedException e) {
-                // Handle InterruptedException (e.g., thread interruption, long-running process)
-                LOGGER.error("InterruptedException occurred during EdgeTag-based authentication", e);
-                return HttpResponse.serverError().body("Request interrupted: " + e.getMessage());
-            } catch (Exception e) {
-                // Catch any other unexpected exceptions
-                LOGGER.error("EdgeTag-based authentication failed due to unexpected error", e);
-                return HttpResponse.serverError().body("Unexpected error occurred");
-            }
-        } else {
-            // If neither authorization header nor EdgeTag-based details are found
-            return HttpResponse.unauthorized().header(HttpHeaders.WWW_AUTHENTICATE, "Bearer realm=\"Blotout\"");
-        }
-
-        // If validation passes, proceed with the request chain
-        return chain.proceed(request);
+        LOGGER.info("Response: " + response.body());
+        return response.statusCode() == 200;
     }
 }
