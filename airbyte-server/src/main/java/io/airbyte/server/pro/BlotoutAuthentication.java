@@ -11,6 +11,11 @@ import org.slf4j.LoggerFactory;
 import io.airbyte.server.config.BlotoutConfigs;
 
 import java.io.IOException;
+import java.net.URI;
+import java.time.Duration;
+import java.net.http.HttpClient as JHttpClient;
+import java.net.http.HttpRequest as JHttpRequest;
+import java.net.http.HttpResponse.BodyHandlers;
 
 @Singleton
 public class BlotoutAuthentication {
@@ -18,7 +23,7 @@ public class BlotoutAuthentication {
     private static final Logger LOGGER = LoggerFactory.getLogger(BlotoutAuthentication.class);
 
     private final BlotoutConfigs configs;
-    private static final HttpClient httpClient = HttpClient.newHttpClient();
+    private static final JHttpClient httpClient = JHttpClient.newHttpClient();  // Use java.net.http.HttpClient
 
     public BlotoutAuthentication(BlotoutConfigs blotoutConfigs) {
         this.configs = blotoutConfigs;
@@ -30,17 +35,18 @@ public class BlotoutAuthentication {
     public boolean validateToken(String token) throws IOException, InterruptedException {
         String blotoutBaseUrl = configs.getBlotoutBaseUrl();
         String blotoutAuthEndpoint = configs.getBlotoutAuthEndpoint();
-        System.out.println("blotoutBaseUrl : " + blotoutBaseUrl);
-        System.out.println("blotoutAuthEndpoint : " + blotoutAuthEndpoint);
+        LOGGER.info("blotoutBaseUrl : " + blotoutBaseUrl);
+        LOGGER.info("blotoutAuthEndpoint : " + blotoutAuthEndpoint);
 
-        final var request = HttpRequest
-                .newBuilder(URI.create(blotoutBaseUrl + blotoutAuthEndpoint))
+        URI uri = URI.create(blotoutBaseUrl + blotoutAuthEndpoint);
+        JHttpRequest request = JHttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(120))
-                .header("Content-Type", "application/json") // connect type
-                .header("token", token) // validate token
+                .header("Content-Type", "application/json")
+                .header("token", token)
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+        // Send the request using HttpClient
+        java.net.http.HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
 
         LOGGER.info("Response: " + response.body());
         return response.statusCode() == 200;
@@ -52,30 +58,22 @@ public class BlotoutAuthentication {
     public boolean validateEdgeTagBasedAuthentication(String origin, String token, String teamId) throws IOException, InterruptedException {
         String blotoutBaseUrl = configs.getBlotoutBaseUrl();
         String blotoutAuthEndpoint = configs.getBlotoutAuthEndpoint();
-        System.out.println("blotoutBaseUrl : " + blotoutBaseUrl);
-        System.out.println("blotoutAuthEndpoint : " + blotoutAuthEndpoint);
+        LOGGER.info("blotoutBaseUrl : " + blotoutBaseUrl);
+        LOGGER.info("blotoutAuthEndpoint : " + blotoutAuthEndpoint);
 
-        HttpResponse<String> response;
+        URI uri = URI.create(blotoutBaseUrl + blotoutAuthEndpoint);
+        JHttpRequest.Builder requestBuilder = JHttpRequest.newBuilder(uri)
+                .timeout(Duration.ofSeconds(120))
+                .header("Content-Type", "application/json")
+                .header("origin", origin)
+                .header("token", token);
+
         if (teamId != null) {
-            final var request = HttpRequest
-                    .newBuilder(URI.create(blotoutBaseUrl + blotoutAuthEndpoint))
-                    .timeout(Duration.ofSeconds(120))
-                    .header("Content-Type", "application/json")
-                    .header("origin", origin)
-                    .header("token", token)
-                    .header("Team-Id", teamId)
-                    .build();
-            response = httpClient.send(request, BodyHandlers.ofString());
-        } else {
-            final var request = HttpRequest
-                    .newBuilder(URI.create(blotoutBaseUrl + blotoutAuthEndpoint))
-                    .timeout(Duration.ofSeconds(120))
-                    .header("Content-Type", "application/json")
-                    .header("origin", origin)
-                    .header("token", token)
-                    .build();
-            response = httpClient.send(request, BodyHandlers.ofString());
+            requestBuilder.header("Team-Id", teamId);
         }
+
+        // Send the request using HttpClient
+        java.net.http.HttpResponse<String> response = httpClient.send(requestBuilder.build(), BodyHandlers.ofString());
 
         LOGGER.info("Response: " + response.body());
         return response.statusCode() == 200;
