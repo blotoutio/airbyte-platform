@@ -29,7 +29,7 @@ public class AuthenticationFilter implements HttpFilter {
     public Mono<HttpResponse<?>> doFilter(HttpRequest<?> request, FilterChain chain) {
         // Skip health check path (if needed)
         if ("v1/health".equalsIgnoreCase(request.getPath())) {
-            return chain.proceed(request);  // Continue without any authentication logic
+            return Mono.from(chain.proceed(request));  // Continue without any authentication logic
         }
 
         String authorizationHeader = request.getHeaders().get(HttpHeaders.AUTHORIZATION);
@@ -38,7 +38,7 @@ public class AuthenticationFilter implements HttpFilter {
 
         // If the request is a CORS preflight request (OPTIONS), bypass the authentication
         if (request.getMethod().name().equalsIgnoreCase("OPTIONS")) {
-            return chain.proceed(request);
+            return Mono.from(chain.proceed(request));  // Continue without any authentication logic
         }
 
         // Check if the Authorization header is present and starts with "Bearer "
@@ -84,6 +84,6 @@ public class AuthenticationFilter implements HttpFilter {
         }
 
         // If validation passes, proceed with the request chain
-        return chain.proceed(request);
+        return Mono.from(chain.proceed(request));  // Correct the return type
     }
 }
