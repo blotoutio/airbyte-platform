@@ -1,6 +1,5 @@
 package io.airbyte.server.pro;
 
-import com.example.services.BlotoutAuthentication;
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Filter;
