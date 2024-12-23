@@ -13,9 +13,9 @@ import io.airbyte.server.config.BlotoutConfigs;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
-import java.net.http.HttpClient as JHttpClient;
-import java.net.http.HttpRequest as JHttpRequest;
-import java.net.http.HttpResponse.BodyHandlers;
+import java.net.http.HttpClient; // Corrected import
+import java.net.http.HttpRequest; // Corrected import
+import java.net.http.HttpResponse.BodyHandlers; // Corrected import
 
 @Singleton
 public class BlotoutAuthentication {
@@ -23,7 +23,7 @@ public class BlotoutAuthentication {
     private static final Logger LOGGER = LoggerFactory.getLogger(BlotoutAuthentication.class);
 
     private final BlotoutConfigs configs;
-    private static final JHttpClient httpClient = JHttpClient.newHttpClient();  // Use java.net.http.HttpClient
+    private static final HttpClient httpClient = HttpClient.newHttpClient();  // Corrected to HttpClient
 
     public BlotoutAuthentication(BlotoutConfigs blotoutConfigs) {
         this.configs = blotoutConfigs;
@@ -39,7 +39,7 @@ public class BlotoutAuthentication {
         LOGGER.info("blotoutAuthEndpoint : " + blotoutAuthEndpoint);
 
         URI uri = URI.create(blotoutBaseUrl + blotoutAuthEndpoint);
-        JHttpRequest request = JHttpRequest.newBuilder(uri)
+        HttpRequest request = HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(120))
                 .header("Content-Type", "application/json")
                 .header("token", token)
@@ -62,7 +62,7 @@ public class BlotoutAuthentication {
         LOGGER.info("blotoutAuthEndpoint : " + blotoutAuthEndpoint);
 
         URI uri = URI.create(blotoutBaseUrl + blotoutAuthEndpoint);
-        JHttpRequest.Builder requestBuilder = JHttpRequest.newBuilder(uri)
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(120))
                 .header("Content-Type", "application/json")
                 .header("origin", origin)
