@@ -6,6 +6,7 @@ import io.micronaut.http.filter.HttpFilter;
 import io.micronaut.http.filter.FilterChain;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.MutableHttpHeaders;  // Ensure MutableHttpHeaders is imported
 import jakarta.inject.Singleton;
 import reactor.core.publisher.Mono;
 
@@ -27,8 +28,10 @@ public class CorsFilter implements HttpFilter {
         // Ensure the response is a Mono<HttpResponse<?>> and use reactive map to modify headers
         return Mono.from(chain.proceed(request))  // Convert the Publisher to Mono
                 .map(response -> {
+                    // Ensure that headers are mutable before modifying them
+                    MutableHttpHeaders headers = (MutableHttpHeaders) response.getHeaders();
                     // Add CORS headers to the response inside the Mono flow
-                    CORS_HEADERS.forEach((key, value) -> response.getHeaders().set(key, value));
+                    CORS_HEADERS.forEach((key, value) -> headers.put(key, value));
                     return response;
                 });
     }
