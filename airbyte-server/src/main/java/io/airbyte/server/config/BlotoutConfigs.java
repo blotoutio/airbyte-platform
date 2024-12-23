@@ -16,4 +16,12 @@ public class BlotoutConfigs {
       }
       return blotoutBaseUrl;
   }
+
+  public String getBlotoutAuthEndpoint() {
+      String blotoutAuthEndpoint = System.getenv("BLOTOUT_AUTH_ENDPOINT");
+      if(blotoutAuthEndpoint == null) {
+          throw new IllegalArgumentException("BLOTOUT_BASE_URL environment variable is not set.");
+      }
+      return blotoutAuthEndpoint;
+  }
 }
