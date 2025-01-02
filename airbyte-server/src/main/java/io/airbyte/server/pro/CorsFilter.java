@@ -26,7 +26,7 @@ public class CorsFilter implements HttpFilter {
     @Override
     public Mono<HttpResponse<?>> doFilter(HttpRequest<?> request, FilterChain chain) {
         // Ensure the response is a Mono<HttpResponse<?>> and use reactive map to modify headers
-        System.out.println("inside CORSFilter...")
+        System.out.println("inside CORSFilter...");
         return Mono.from(chain.proceed(request))  // Convert the Publisher to Mono
                 .map(response -> {
                     // Ensure that headers are mutable before modifying them
