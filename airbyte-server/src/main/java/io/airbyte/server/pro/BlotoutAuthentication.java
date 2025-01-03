@@ -3,16 +3,14 @@ package io.airbyte.server.pro;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.client.HttpClient;  // Micronaut's HttpClient
+import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.HttpRequest;
+import io.micronaut.core.async.annotation.SingleResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.airbyte.server.config.BlotoutConfigs;
-
-import java.io.IOException;
-import java.net.URI;
-import java.time.Duration;
+import reactor.core.publisher.Mono;
 
 @Singleton
 public class BlotoutAuthentication {
@@ -20,47 +18,45 @@ public class BlotoutAuthentication {
     private static final Logger LOGGER = LoggerFactory.getLogger(BlotoutAuthentication.class);
 
     private final BlotoutConfigs configs;
-    private static final java.net.http.HttpClient httpClient = java.net.http.HttpClient.newHttpClient();  // Fully qualified Java HttpClient
 
-    public BlotoutAuthentication(BlotoutConfigs blotoutConfigs) {
+    @Client("${blotout.baseUrl}")  // Use Micronaut's HttpClient injected via client annotation
+    private final HttpClient httpClient;
+
+    public BlotoutAuthentication(BlotoutConfigs blotoutConfigs, HttpClient httpClient) {
         this.configs = blotoutConfigs;
+        this.httpClient = httpClient;
     }
 
     /**
-     * Validates the token using the Blotout service.
+     * Validates the token using the Blotout service (Non-blocking version).
      */
-    public boolean validateToken(String token) throws IOException, InterruptedException {
+    @SingleResult
+    public Mono<Boolean> validateToken(String token) {
         String blotoutBaseUrl = configs.getBlotoutBaseUrl();
         String blotoutAuthEndpoint = configs.getBlotoutAuthEndpoint();
-        LOGGER.info("blotoutBaseUrl : " + blotoutBaseUrl);
-        LOGGER.info("blotoutAuthEndpoint : " + blotoutAuthEndpoint);
+        LOGGER.info("blotoutBaseUrl : {}", blotoutBaseUrl);
+        LOGGER.info("blotoutAuthEndpoint : {}", blotoutAuthEndpoint);
 
-        URI uri = URI.create(blotoutBaseUrl + blotoutAuthEndpoint);
-        java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder(uri) // Fully qualified Java HttpRequest
-                .timeout(Duration.ofSeconds(120))
+        HttpRequest request = HttpRequest.GET(blotoutBaseUrl + blotoutAuthEndpoint)
                 .header("Content-Type", "application/json")
-                .header("token", token)
-                .build();
+                .header("token", token);
 
-        // Send the request using HttpClient
-        java.net.http.HttpResponse<String> response = httpClient.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-
-        LOGGER.info("Response: " + response.body());
-        return response.statusCode() == 200;
+        return httpClient.exchange(request, String.class)
+                .doOnTerminate(() -> LOGGER.info("Request completed"))
+                .map(response -> response.status().getCode() == 200);
     }
 
     /**
-     * Validates EdgeTag-based authentication tokens.
+     * Validates EdgeTag-based authentication tokens (Non-blocking version).
      */
-    public boolean validateEdgeTagBasedAuthentication(String origin, String token, String teamId) throws IOException, InterruptedException {
+    @SingleResult
+    public Mono<Boolean> validateEdgeTagBasedAuthentication(String origin, String token, String teamId) {
         String blotoutBaseUrl = configs.getBlotoutBaseUrl();
         String blotoutAuthEndpoint = configs.getBlotoutAuthEndpoint();
-        LOGGER.info("blotoutBaseUrl : " + blotoutBaseUrl);
-        LOGGER.info("blotoutAuthEndpoint : " + blotoutAuthEndpoint);
+        LOGGER.info("blotoutBaseUrl : {}", blotoutBaseUrl);
+        LOGGER.info("blotoutAuthEndpoint : {}", blotoutAuthEndpoint);
 
-        URI uri = URI.create(blotoutBaseUrl + blotoutAuthEndpoint);
-        java.net.http.HttpRequest.Builder requestBuilder = java.net.http.HttpRequest.newBuilder(uri)  // Fully qualified Java HttpRequest
-                .timeout(Duration.ofSeconds(120))
+        HttpRequest.Builder requestBuilder = HttpRequest.GET(blotoutBaseUrl + blotoutAuthEndpoint)
                 .header("Content-Type", "application/json")
                 .header("origin", origin)
                 .header("token", token);
@@ -69,10 +65,10 @@ public class BlotoutAuthentication {
             requestBuilder.header("Team-Id", teamId);
         }
 
-        // Send the request using HttpClient
-        java.net.http.HttpResponse<String> response = httpClient.send(requestBuilder.build(), java.net.http.HttpResponse.BodyHandlers.ofString());
+        HttpRequest request = requestBuilder.build();
 
-        LOGGER.info("Response: " + response.body());
-        return response.statusCode() == 200;
+        return httpClient.exchange(request, String.class)
+                .doOnTerminate(() -> LOGGER.info("Request completed"))
+                .map(response -> response.status().getCode() == 200);
     }
 }
