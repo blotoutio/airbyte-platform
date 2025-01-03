@@ -6,7 +6,6 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.core.async.annotation.SingleResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.airbyte.server.config.BlotoutConfigs;
@@ -30,7 +29,6 @@ public class BlotoutAuthentication {
     /**
      * Validates the token using the Blotout service (Non-blocking version).
      */
-    @SingleResult
     public Mono<Boolean> validateToken(String token) {
         String blotoutBaseUrl = configs.getBlotoutBaseUrl();
         String blotoutAuthEndpoint = configs.getBlotoutAuthEndpoint();
@@ -41,7 +39,7 @@ public class BlotoutAuthentication {
                 .header("Content-Type", "application/json")
                 .header("token", token);
 
-        return httpClient.exchange(request, String.class)
+        return Mono.from(httpClient.exchange(request, String.class))  // Convert Publisher to Mono
                 .doOnTerminate(() -> LOGGER.info("Request completed"))
                 .map(response -> response.status().getCode() == 200);
     }
@@ -49,25 +47,23 @@ public class BlotoutAuthentication {
     /**
      * Validates EdgeTag-based authentication tokens (Non-blocking version).
      */
-    @SingleResult
     public Mono<Boolean> validateEdgeTagBasedAuthentication(String origin, String token, String teamId) {
         String blotoutBaseUrl = configs.getBlotoutBaseUrl();
         String blotoutAuthEndpoint = configs.getBlotoutAuthEndpoint();
         LOGGER.info("blotoutBaseUrl : {}", blotoutBaseUrl);
         LOGGER.info("blotoutAuthEndpoint : {}", blotoutAuthEndpoint);
 
-        HttpRequest.Builder requestBuilder = HttpRequest.GET(blotoutBaseUrl + blotoutAuthEndpoint)
+        // Create HttpRequest directly, no builder needed
+        HttpRequest request = HttpRequest.GET(blotoutBaseUrl + blotoutAuthEndpoint)
                 .header("Content-Type", "application/json")
                 .header("origin", origin)
                 .header("token", token);
 
         if (teamId != null) {
-            requestBuilder.header("Team-Id", teamId);
+            request.header("Team-Id", teamId);
         }
 
-        HttpRequest request = requestBuilder.build();
-
-        return httpClient.exchange(request, String.class)
+        return Mono.from(httpClient.exchange(request, String.class))  // Convert Publisher to Mono
                 .doOnTerminate(() -> LOGGER.info("Request completed"))
                 .map(response -> response.status().getCode() == 200);
     }
