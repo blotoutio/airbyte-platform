@@ -83,10 +83,8 @@ public class AuthenticationFilter implements HttpFilter {
                     })
             );
         } else {
-            LOGGER.error(" return from isTokenBasedAuthentication ");
-            return Mono.just(HttpResponse.serverError()
-                    .header(HttpHeaders.WWW_AUTHENTICATE, "Bearer realm=\"Blotout\"")
-                    .body("Authentication error: "));
+            LOGGER.error(" return from last else part ");
+            return Mono.from(chain.proceed(request));  // Continue without any authentication logic
         }
     }
 
