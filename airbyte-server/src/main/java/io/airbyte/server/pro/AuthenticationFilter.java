@@ -44,9 +44,9 @@ public class AuthenticationFilter implements HttpFilter {
         }
 
         if (isEdgeTagBasedAuthentication(originHeader)) {
-            LOGGER.debug("authorizationHeader -> " + authorizationHeader);
-            LOGGER.debug("originHeader -> " + originHeader);
-            LOGGER.debug("teamIdHeader -> " + teamIdHeader);
+            LOGGER.warn("authorizationHeader -> " + authorizationHeader);
+            LOGGER.warn("originHeader -> " + originHeader);
+            LOGGER.warn("teamIdHeader -> " + teamIdHeader);
             // Use Mono.defer to ensure this operation is handled asynchronously
             return Mono.defer(() -> blotoutAuthentication.validateEdgeTagBasedAuthentication(originHeader, authorizationHeader, teamIdHeader)
                     .flatMap(valid -> {
@@ -66,9 +66,9 @@ public class AuthenticationFilter implements HttpFilter {
                     })
             );
         } else if (isTokenBasedAuthentication(authorizationHeader)) {
-            LOGGER.debug("authorizationHeader -> " + authorizationHeader);
-            LOGGER.debug("originHeader -> " + originHeader);
-            LOGGER.debug("teamIdHeader -> " + teamIdHeader);
+            LOGGER.warn("authorizationHeader -> " + authorizationHeader);
+            LOGGER.warn("originHeader -> " + originHeader);
+            LOGGER.warn("teamIdHeader -> " + teamIdHeader);
             // Extract the token (remove "Bearer " prefix)
             String token = authorizationHeader.substring(AUTHENTICATION_SCHEME.length()).trim();
             return Mono.defer(() -> blotoutAuthentication.validateToken(token)
