@@ -22,6 +22,7 @@ public class AuthenticationFilter implements HttpFilter {
     private static final String AUTHENTICATION_SCHEME = "Bearer";
     private static final String TEAM_ID_HEADER = "Team-Id";
     private static final String ORIGIN_HEADER = "origin";
+    private static final String TOKEN_HEADER = "token";
 
     public AuthenticationFilter(BlotoutAuthentication blotoutAuthentication) {
         this.blotoutAuthentication = blotoutAuthentication;
@@ -37,6 +38,7 @@ public class AuthenticationFilter implements HttpFilter {
         String authorizationHeader = request.getHeaders().get(HttpHeaders.AUTHORIZATION);
         String originHeader = request.getHeaders().get(ORIGIN_HEADER);
         String teamIdHeader = request.getHeaders().get(TEAM_ID_HEADER);
+        String tokenHeader = request.getHeaders().get(TOKEN_HEADER);
 
         // If the request is a CORS preflight request (OPTIONS), bypass the authentication
         if (request.getMethod().name().equalsIgnoreCase("OPTIONS")) {
@@ -65,13 +67,13 @@ public class AuthenticationFilter implements HttpFilter {
                         return Mono.just(HttpResponse.serverError().body("Authentication error: " + e.getMessage()));
                     })
             );
-        } else if (isTokenBasedAuthentication(authorizationHeader)) {
+        } else if (isTokenBasedAuthentication(tokenHeader)) {
             LOGGER.warn("authorizationHeader -> " + authorizationHeader);
             LOGGER.warn("originHeader -> " + originHeader);
             LOGGER.warn("teamIdHeader -> " + teamIdHeader);
+            LOGGER.warn("tokenHeader -> " + tokenHeader);
             // Extract the token (remove "Bearer " prefix)
-            String token = authorizationHeader.substring(AUTHENTICATION_SCHEME.length()).trim();
-            return Mono.defer(() -> blotoutAuthentication.validateToken(token)
+            return Mono.defer(() -> blotoutAuthentication.validateToken(tokenHeader)
                     .flatMap(valid -> {
                         if (valid) {
                             // If valid, continue with the request chain
@@ -99,11 +101,8 @@ public class AuthenticationFilter implements HttpFilter {
                 EdgeTagClient.getEdgeTagOrigins().contains(originHeader);
     }
 
-    private boolean isTokenBasedAuthentication(String authorizationHeader) {
-        // Check if the Authorization header is valid
-        // It must not be null and must be prefixed with "Bearer" plus a whitespace
-        // The authentication scheme comparison must be case-insensitive
-        return authorizationHeader != null && authorizationHeader.toLowerCase()
-                .startsWith(AUTHENTICATION_SCHEME.toLowerCase() + " ");
+    private boolean isTokenBasedAuthentication(String tokenHeader) {
+        // Check if the Token header is present
+        return Objects.nonNull(tokenHeader);
     }
 }
