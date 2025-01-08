@@ -1,15 +1,15 @@
 name: Blotout Gradle Build & Docker push
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:  # Manually triggerable from GitHub UI      
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Manually triggerable from GitHub UI  
 env:
   DOCKER_TAG: "${{ github.ref_name }}-${{ github.sha }}"
 
 jobs:
   build:
+    if: ${{ (github.event_name == 'pull_request' && !github.event.pull_request.draft) }}   
     runs-on: ubuntu-latest #self-hosted 
     steps:
     # Step 1: Check out the repository
@@ -81,7 +81,7 @@ jobs:
     - name: Build with Gradle
       run: |
             ./gradlew clean
-            ./gradlew  :oss:airbyte-server:build -x test -x spotlessJava -x spotlessStyling -x :oss:airbyte-commons-worker:test -x javadoc -x checkstyleMain --scan --quiet
+            ./gradlew  :oss:airbyte-server:build -x test -x spotlessJava -x spotlessStyling -x :oss:airbyte-commons-worker:test -x javadoc --scan --quiet 
      #  run: ./gradlew build -x :oss:airbyte-commons-worker:test -x :oss:airbyte-bootloader:spotlessStyling -x :oss:airbyte-commons-auth:spotlessStyling  -x :oss:airbyte-api:spotlessStyling -x test -x javadoc  --scan --quiet
 
     # Step 6: Log in to DockerHub
@@ -101,11 +101,9 @@ jobs:
           docker tag airbyte/server:dev blotout/airbyte-server-v1:${{ env.DOCKER_TAG }}
           docker push blotout/airbyte-server-v1:${{ env.DOCKER_TAG }}        
 
-  output_image_tag:
-     runs-on: ubuntu-latest
-     needs: build
-     steps:
-       - name: Output Airbyte Server Docker Image Tag
-         run: |
-           echo "Docker Image Tag: blotout/airbyte-server-v1:${{ env.DOCKER_TAG }}"
-        
+    - name: Comment
+      uses: NejcZdovc/comment-pr@v1
+      with:
+        message: "Docker tag: `${{ env.DOCKER_TAG }}`"
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
