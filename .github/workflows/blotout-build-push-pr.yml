@@ -3,7 +3,7 @@ name: Blotout Gradle Build & Docker push
 on:
   pull_request:
     branches: [ main ]
-  workflow_dispatch:  # Manually triggerable from GitHub UI      
+  workflow_dispatch:  # Manually triggerable from GitHub UI  
 env:
   DOCKER_TAG: "${{ github.ref_name }}-${{ github.sha }}"
 
