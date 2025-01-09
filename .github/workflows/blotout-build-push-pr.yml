@@ -5,7 +5,8 @@ on:
     branches: [ main ]
   workflow_dispatch:  # Manually triggerable from GitHub UI  
 env:
-  DOCKER_TAG: "${{ github.ref_name }}-${{ github.sha }}"
+  DOCKER_TAG: |
+    ${{ github.event.pull_request.head.ref }}-${{ github.event.pull_request.head.sha }}
 
 jobs:
   build:
