@@ -472,5 +472,5 @@ logger:
   #    com.zaxxer.hikari: TRACE
 
 blotout:
-  baseUrl: ${BLOTOUT_BASE_URL:multitenantdev-ui-dev.blotout.io}
-  authEndpoint: ${BLOTOUT_AUTH_ENDPOINT:/api/v1/auth/validation}
+  baseUrl: ${BLOTOUT_BASE_URL:multitenantdev1-ui-dev.blotout.io}
+  authEndpoint: ${BLOTOUT_AUTH_ENDPOINT:/api1/v1/auth/validation}

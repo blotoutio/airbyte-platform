@@ -25,6 +25,8 @@ public class BlotoutConfigs {
       String env_blotoutBaseUrl = System.getenv("BLOTOUT_BASE_URL");
       LOGGER.warn("BLOTOUT_BASE_URL env_blotoutBaseUrl =====>" + env_blotoutBaseUrl);
       if(Objects.nonNull(blotoutBaseUrl) && !blotoutBaseUrl.contains("https")) {
+          LOGGER.warn("inside if loop");
+          LOGGER.warn("blotoutBaseUrl -> " + blotoutBaseUrl);
           blotoutBaseUrl =  "https://" + blotoutBaseUrl;
       }
       if(blotoutBaseUrl == null) {
