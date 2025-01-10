@@ -25,9 +25,9 @@ public class BlotoutConfigs {
   }
 
   public String getBlotoutAuthEndpoint() {
-      String env_blotoutAuthEndpoint = System.getenv("BLOTOUT_AUTH_ENDPOINT");
-      LOGGER.debug("BLOTOUT_AUTH_ENDPOINT =====> " + env_blotoutAuthEndpoint);
-      if(Objects.isNull(blotoutAuthEndpoint) == null) {
+      String blotoutAuthEndpoint = System.getenv("BLOTOUT_AUTH_ENDPOINT");
+      LOGGER.debug("BLOTOUT_AUTH_ENDPOINT =====> " + blotoutAuthEndpoint);
+      if(Objects.isNull(blotoutAuthEndpoint)) {
           LOGGER.warn("BLOTOUT_AUTH_ENDPOINT env variable not found");
           throw new IllegalArgumentException("BLOTOUT_BASE_URL environment variable is not set.");
       }
