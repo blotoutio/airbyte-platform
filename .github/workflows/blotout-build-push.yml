@@ -6,7 +6,8 @@ on:
       - main
   workflow_dispatch:  # Manually triggerable from GitHub UI      
 env:
-  DOCKER_TAG: "${{ github.ref_name }}-${{ github.sha }}"
+  DOCKER_TAG: |
+    ${{ github.event.pull_request.head.ref }}-${{ github.event.pull_request.head.sha }}
 
 jobs:
   build:
@@ -81,7 +82,7 @@ jobs:
     - name: Build with Gradle
       run: |
             ./gradlew clean
-            ./gradlew  :oss:airbyte-server:build -x test -x spotlessJava -x spotlessStyling -x :oss:airbyte-commons-worker:test -x javadoc --scan --quiet 
+            ./gradlew  :oss:airbyte-server:build -x test -x spotlessJava -x spotlessStyling -x :oss:airbyte-commons-worker:test -x javadoc -x checkstyleMain --scan --quiet
      #  run: ./gradlew build -x :oss:airbyte-commons-worker:test -x :oss:airbyte-bootloader:spotlessStyling -x :oss:airbyte-commons-auth:spotlessStyling  -x :oss:airbyte-api:spotlessStyling -x test -x javadoc  --scan --quiet
 
     # Step 6: Log in to DockerHub

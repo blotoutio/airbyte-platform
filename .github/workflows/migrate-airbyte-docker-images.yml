@@ -1,0 +1,58 @@
+name: Full Airbyte V1 Docker Image Migration to Blotout dockerhub
+
+on:
+  # Only trigger manually via the GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Confirm to run this workflow"
+        required: true
+        default: "yes"
+
+jobs:
+  migrate-images:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Pull, Tag, and Push Images
+        run: |
+          # List of source images and their corresponding private repository tags
+          images=(
+            "airbyte/bootloader:1.3.0|blotout/airbyte-bootloader-v1:1.3.0"
+            "airbyte/connector-builder-server:1.3.0|blotout/airbyte-connector-builder-server-v1:1.3.0"
+            "airbyte/container-orchestrator:1.3.0|blotout/airbyte-container-orchestrator-v1:1.3.0"
+            "airbyte/cron:1.3.0|blotout/airbyte-cron-v1:1.3.0"
+            "airbyte/metrics-reporter:1.3.0|blotout/airbyte-metrics-reporter-v1:1.3.0"
+            "airbyte/webapp:1.3.0|blotout/airbyte-webapp-v1:1.3.0"
+            "airbyte/worker:1.3.0|blotout/airbyte-worker-v1:1.3.0"
+            "airbyte/workload-api-server:1.3.0|blotout/airbyte-workload-api-server-v1:1.3.0"
+            "airbyte/workload-launcher:1.3.0|blotout/airbyte-workload-launcher-v1:1.3.0"
+            "airbyte/workload-init-container:1.3.0|blotout/airbyte-workload-init-container-v1:1.3.0"
+            "blotout/airbyte-scheduler:1.3.0|blotout/airbyte-scheduler-v1:1.3.0"
+            "bitnami/kubectl:1.28.9|blotout/bitnami-kubectl-v1:1.28.9"
+            "minio/minio:RELEASE.2024-11-07T00-52-20Z.fips|blotout/minio-v1:RELEASE.2024-11-07T00-52-20Z.fips"
+            "temporalio/auto-setup:1.23.0|blotout/temporalio-auto-setup-v1:1.23.0"
+          )
+
+          # Iterate over images
+          for image in "${images[@]}"; do
+            src_image="${image%%|*}"  # Extract source image
+            dest_image="${image##*|}" # Extract destination image
+
+            echo "Processing $src_image -> $dest_image"
+
+            # Pull the source image
+            docker pull "$src_image"
+
+            # Tag the image with the new repository name
+            docker tag "$src_image" "$dest_image"
+
+            # Push the image to the private repository
+            docker push "$dest_image"
+          done
