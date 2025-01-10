@@ -470,7 +470,3 @@ logger:
   # Uncomment to help resolve issues with micronaut data
   #    com.zaxxer.hikari.HikariConfig: DEBUG
   #    com.zaxxer.hikari: TRACE
-
-blotout:
-  baseUrl: ${BLOTOUT_BASE_URL:multitenantdev1-ui-dev.blotout.io}
-  authEndpoint: ${BLOTOUT_AUTH_ENDPOINT:/api1/v1/auth/validation}
