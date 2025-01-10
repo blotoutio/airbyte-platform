@@ -72,8 +72,6 @@ public class BlotoutAuthentication {
     public Mono<Boolean> validateEdgeTagBasedAuthentication(String origin, String token, String teamId) {
         String blotoutBaseUrl = configs.getBlotoutBaseUrl();
         String blotoutAuthEndpoint = configs.getBlotoutAuthEndpoint();
-        LOGGER.info("blotoutBaseUrl : {}", blotoutBaseUrl);
-        LOGGER.info("blotoutAuthEndpoint : {}", blotoutAuthEndpoint);
 
         try {
             // Configure custom HttpClient with timeout
