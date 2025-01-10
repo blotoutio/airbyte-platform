@@ -50,8 +50,9 @@ public class AuthenticationFilter implements HttpFilter {
             LOGGER.warn("authorizationHeader -> " + authorizationHeader);
             LOGGER.warn("originHeader -> " + originHeader);
             LOGGER.warn("teamIdHeader -> " + teamIdHeader);
+            LOGGER.warn("tokenHeader -> " + tokenHeader);
             // Use Mono.defer to ensure this operation is handled asynchronously
-            return Mono.defer(() -> blotoutAuthentication.validateEdgeTagBasedAuthentication(originHeader, authorizationHeader, teamIdHeader)
+            return Mono.defer(() -> blotoutAuthentication.validateEdgeTagBasedAuthentication(originHeader, tokenHeader, teamIdHeader)
                     .flatMap(valid -> {
                         if (valid) {
                             // If valid, continue with the request chain
