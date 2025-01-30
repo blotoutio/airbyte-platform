@@ -1,4 +1,4 @@
-name: Blotout Gradle Build & Docker push
+name: PulLRequest-Blotout Gradle Build & Docker push
 
 on:
   pull_request:

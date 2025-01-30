@@ -1,13 +1,12 @@
-name: Blotout Gradle Build & Docker push
+name: Release-Blotout Gradle Build & Docker push
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:  # Manually triggerable from GitHub UI      
+  release:
+    types: ["published"]
+  workflow_dispatch:  # Keeping manual trigger option
+
 env:
-  DOCKER_TAG: |
-    ${{ github.ref_name }}-${{ github.sha }}
+  DOCKER_IMAGE: blotout/airbyte-server-v1:${{ github.ref_name }}
 
 jobs:
   build:
@@ -97,16 +96,16 @@ jobs:
             docker images | awk '$2 == "unspecified" && $1 ~ /^airbyte/ {system("docker tag "$3" "$1":dev")}'\n
             docker images
 
-    - name: Tag and Push the image for Airbyte Server 
+    - name: Tag and Push Docker image
       run: |
-          docker tag airbyte/server:dev blotout/airbyte-server-v1:${{ env.DOCKER_TAG }}
-          docker push blotout/airbyte-server-v1:${{ env.DOCKER_TAG }}        
+          docker tag airbyte/server:dev ${{ env.DOCKER_IMAGE }}
+          docker push ${{ env.DOCKER_IMAGE }}        
 
   output_image_tag:
      runs-on: ubuntu-latest
      needs: build
      steps:
-       - name: Output Airbyte Server Docker Image Tag
+       - name: Output Docker Image Tag
          run: |
-           echo "Docker Image Tag: blotout/airbyte-server-v1:${{ env.DOCKER_TAG }}"
+           echo "Docker Image: ${{ env.DOCKER_IMAGE }}"
         
